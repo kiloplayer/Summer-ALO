@@ -132,65 +132,65 @@ vec PoissonALO(vec beta, double intercept,
 }
 
 // [[Rcpp::export]]
-mat MultinomialALO(mat beta, vec intercept, 
-                   mat X, mat y, 
+mat MultinomialALO(vec beta, bool intercept, 
+                   mat X, mat X_Sp, mat y_mat, 
                    double lambda, double alpha) {
   // find out the dimension of X
   double n = X.n_rows; // N
-  double p = X.n_cols; // P
-  double num_class = y.n_cols; // K
-  // define the output matrix
-  mat y_alo_linear(n, num_class);
-  mat y_alo_exp(n, num_class);
-  mat y_alo(n, num_class);
-  // define full data set
-  vec ones(n,fill::ones);
-  mat X_full = X; // N * (P + 1)
-  X_full.insert_cols(0, ones);
-  // define full beta (intercept & slope)
-  mat beta_full(p + 1, num_class); // (P + 1) * K
-  beta_full(0, span(0, num_class - 1)) = intercept.t();
-  beta_full(span(1, p), span(0, num_class - 1)) = beta;
-  // compute linear prediction and its exponential value
-  mat y_linear = X_full * beta_full; // N * K
-  mat y_exp = exp(y_linear); // N * K
-  // compute the summation of all classes y_exp
-  vec sum_y_exp = sum(y_exp, 1); // N * 1
-  // for loop to compute the prediction under each class
-  for (int k = 0; k < num_class; ++k) {
-    // find active set
-    uvec A = find(beta_full.col(k) != 0);
-    // compute matrix D
-    mat D(n, n, fill::zeros);
-    D.diag() = y_exp.col(k) % (sum_y_exp - y_exp.col(k)) / (sum_y_exp % sum_y_exp);
-    // compute matrix H
-    mat H(n, n, fill::zeros);
-    if(!A.is_empty()) {
-      mat X_active = X_full.cols(A);
-      mat R_diff2(A.n_elem, A.n_elem, fill::eye);
-      R_diff2 = R_diff2 * n * lambda * (1 - alpha);
-      if(intercept(k) != 0) {
-        R_diff2(0,0) = 0;
-      }
-      mat L = chol(X_active.t() * D * X_active + R_diff2).t();
-      mat L_inv = inv(L);
-      mat AE = L_inv * X_active.t();
-      H = AE.t() * AE;
-    }
-    // compute the ALO prediction
-    y_alo_linear.col(k) = y_linear.col(k) + 
-      H.diag() % (y_exp.col(k) / sum_y_exp - y.col(k)) / 
-      (1 - H.diag() % D.diag());
-    y_alo_exp.col(k) = exp(y_alo_linear.col(k));
+  double p; // P
+  if (intercept) {
+    p = X.n_cols - 1;
+  } else {
+    p = X.n_cols;
   }
-  // compute the summation of all classes y_exp
-  vec sum_y_alo_exp = sum(y_alo_exp, 1); // N * 1
-  // compute the alo prediction
-  for (int k = 0; k < num_class; ++k) {
-    y_alo.col(k) = y_alo_exp.col(k) / sum_y_alo_exp;
+  double num_class = y_mat.n_cols; // K
+  // find the active set
+  uvec E = find(beta != 0);
+  // compute vector A(beta) and matrix D(beta)
+  vec A(n * num_class, fill::none);
+  mat D(n * num_class, n * num_class, fill::zeros);
+  for (uword i = 0; i < n; ++i) {
+    uvec idx = regspace<uvec>(i * num_class, 1, (i + 1) * num_class - 1);
+    A(idx) = exp(X_Sp.rows(idx) * beta);
+    A(idx) = A(idx) / sum(A(idx));
+    D(idx, idx) = diagmat(A(idx)) - A(idx) * A(idx).t();
   }
-  return y_alo;
+  // compute R_diff2
+  mat R_diff2;
+  if (intercept) {
+    R_diff2 = eye<mat>((p + 1) * num_class, (p + 1) * num_class);
+    R_diff2.diag() = R_diff2.diag() * n * lambda * (1 - alpha);
+    uvec idx = regspace<uvec>(0, num_class - 1) * (p + 1);
+    R_diff2(idx, idx) = R_diff2(idx, idx) * 0;
+  } else {
+    R_diff2 = eye<mat>(p * num_class, p * num_class);
+    R_diff2.diag() = R_diff2.diag() * n * lambda * (1 - alpha);
+  }
+  // compute matrix K(beta) and its inverse
+  mat K_inv = pinv(X_Sp.cols(E).t() * D * X_Sp.cols(E) + R_diff2(E, E), 0);
+  // do leave-i-out prediction
+  mat y_alo(n, num_class, fill::none);
+  for (uword i = 0; i < n; ++i) {
+    // find the X_i and y_i
+    uvec idx = regspace<uvec>(i * num_class, 1, (i + 1) * num_class - 1);
+    mat X_i = X_Sp.rows(idx);
+    vec y_i = conv_to<vec>::from(y_mat.row(i));
+    // find A_i
+    vec A_i = A(idx);
+    // compute XKX
+    mat XKX = X_i.cols(E) * K_inv * X_i.cols(E).t();
+    // compute the inversion of diag(A)-A*A^T
+    mat middle_inv = pinv(diagmat(A_i) - A_i * A_i.t(), 0);
+    // compute the leave-i-out prediction
+    vec y_linear = X_i * beta + XKX * (A_i - y_i) - 
+      XKX * pinv(-middle_inv + XKX, 0) * XKX * (A_i - y_i);
+    vec y_exp = exp(y_linear);
+    y_alo.row(i) = conv_to<rowvec>::from(y_exp) / sum(y_exp);
+  }
+  // return alo
+  return(y_alo);
 }
+
 
 // [[Rcpp::export]]
 vec GenLASSOALO(vec beta, vec u, mat X, vec y, mat D, 
