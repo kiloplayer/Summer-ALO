@@ -1,0 +1,622 @@
+\documentclass[letter]{article}
+\usepackage[margin=2cm]{geometry}
+\usepackage{bm}
+\usepackage{amsmath}
+\setlength{\parindent}{0em}
+\usepackage{hyperref}
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+
+\begin{document}
+	
+	\section{Smooth Loss and Smooth Regularizer}
+	
+	\subsection{Objective Function}
+	
+	Given smooth loss function,  $l\left(\beta_0+\bm{x}_j^T\bm{\beta};y_j\right)$, and smooth regularization, $R(\beta_0,\bm{\beta})$, we can get the objective function under the full data like
+	$$Q^*(\beta_0,\bm{\beta})=\sum_{j=1}^n{l\left(\beta_0+\bm{x}_j^T\bm{\beta};y_j\right)}+R(\beta_0,\bm{\beta}) \eqno (1)$$
+	The leave-$i$-out objection function as 
+	$$Q(\beta_0,\bm{\beta})=\sum_{j\neq i}{l\left(\beta_0+\bm{x}_j^T\bm{\beta};y_j\right)}+R(\beta_0,\bm{\beta}) \eqno (2)$$
+	
+	\subsection{Approximate Leave-$i$-Out Prediction}
+	
+	Assuming $\hat{\beta}_0,\hat{\bm{\beta}}$ are the estimated parameters under the full dataset.
+	
+	Based on Newton's method, we have
+	$$\begin{bmatrix}
+	\tilde{\beta}_0^{/i} \\
+	\tilde{\bm{\beta}}^{/i}\end{bmatrix}=
+	\begin{bmatrix}
+	\hat{\beta}_0 \\
+	\hat{\bm{\beta}}\end{bmatrix}-\left[\nabla^2Q\left(\hat{\beta}_0,\hat{\bm{\beta}}\right)\right]^{-1}\nabla Q\left(\hat{\beta}_0,\hat{\bm{\beta}}\right) \eqno (3)$$
+	where,
+	$$\begin{cases}\nabla^2Q\left(\hat{\beta}_0,\hat{\bm{\beta}}\right)=
+	\sum_{j\neq i}{\begin{bmatrix}
+		1 \\
+		\bm{x}_j\end{bmatrix}
+		\begin{bmatrix}
+		1 & \bm{x}_j^T \\ \end{bmatrix}
+		\ddot{l}\left(\hat{\beta}_0+\bm{x}_j^T\hat{\bm{\beta}};y_j\right)}+
+	\nabla^2R\left(\hat{\beta}_0,\hat{\bm{\beta}}\right) \\
+    \nabla Q\left(\hat{\beta}_0,\hat{\bm{\beta}}\right)=
+    -\begin{bmatrix}
+    1 \\
+    \bm{x}_i\end{bmatrix}
+    \dot{l}\left(\hat{\beta}_0+\bm{x}_i^T\hat{\bm{\beta}};y_i\right)
+    \end{cases}$$
+    So, now we have
+    $$\begin{bmatrix}
+    1 & \bm{x}_i^T\end{bmatrix}\begin{bmatrix}
+    \tilde{\beta}_0^{/i} \\
+    \tilde{\bm{\beta}}^{/i}\end{bmatrix}=\begin{bmatrix}
+    1 & \bm{x}_i^T\end{bmatrix}\begin{bmatrix}
+    \hat{\beta}_0 \\
+    \hat{\bm{\beta}}\end{bmatrix}+\begin{bmatrix}
+    1 & \bm{x}_i^T\end{bmatrix}\left\{
+    \sum_{j\neq i}{\begin{bmatrix}
+    	1 \\
+    	\bm{x}_j\end{bmatrix}\begin{bmatrix}
+    	1 & \bm{x}_j^T \\ \end{bmatrix}
+    	\ddot{l}\left(\hat{\beta}_0+\bm{x}_j^T\hat{\bm{\beta}};y_j\right)}+
+    \nabla^2R\left(\hat{\beta}_0,\hat{\bm{\beta}}\right)\right\}^{-1}
+    \begin{bmatrix}
+    1 \\
+    \bm{x}_i\end{bmatrix}\dot{l}\left(\hat{\beta}_0+\bm{x}_i^T\hat{\bm{\beta}};y_i\right)$$
+    
+    Using the matrix inversion lemma, we get
+    $$\begin{bmatrix}
+    1 & \bm{x}_i^T\end{bmatrix}\begin{bmatrix}
+    \tilde{\beta}_0^{/i} \\
+    \tilde{\bm{\beta}}^{/i}\end{bmatrix}=\hat{\beta}_0+\bm{x}_i^T\hat{\bm{\beta}}+\frac{H_{ii}}{1-H_{ii}\ddot{l}\left(\hat{\beta}_0+\bm{x}_i^T\hat{\bm{\beta}};y_i\right)}\dot{l}\left(\hat{\beta}_0+\bm{x}_i^T\hat{\bm{\beta}};y_i\right) \eqno (4)$$
+    where,
+    $$\bm{H}=\left[\bm{1}_n,\bm{X}\right]\left\{\left[\bm{1}_n,\bm{X}\right]^T\bm{D}\left[\bm{1}_n,\bm{X}\right]+\nabla^2R\left(\hat{\beta}_0,\hat{\bm{\beta}}\right)\right\}^{-1}\left[\bm{1}_n,\bm{X}\right]^T$$
+    $$\bm{D}={\rm diag}\left(\ddot{l}\left(\hat{\beta}_0+\bm{x}_1^T\hat{\bm{\beta}};y_1\right),...,\ddot{l}\left(\hat{\beta}_0+\bm{x}_n^T\hat{\bm{\beta}};y_n\right)\right)$$
+    
+	\section{Elastic Net}
+	
+	\subsection{Objective Function}
+	
+	Given the loss function, 
+	$$l\left(\beta_0+\bm{x}_j^T\bm{\beta};y_j\right)=\frac{1}{2}\left(y_j-\beta_0-\bm{x}_j^T\bm{\beta}\right)^2$$
+	, and the regularization $R(\beta_0,\bm{\beta})=\lambda_1\norm{\bm{\beta}}_1+\lambda_2\norm{\bm{\beta}}_2^2$, we can get the objective function under the full data like
+	$$Q^*(\beta_0,\bm{\beta})=\sum_{j=1}^n{l\left(\beta_0+\bm{x}_j^T\bm{\beta};y_j\right)}+R(\beta_0,\bm{\beta})$$
+	The leave-$i$-out objection function as 
+	$$\begin{aligned}
+	Q(\beta_0,\bm{\beta})=&\sum_{j\neq i}
+	{l\left(\beta_0+\bm{x}_j^T\bm{\beta};y_j\right)}+
+	R(\beta_0,\bm{\beta}) \\
+	=&\frac{1}{2}\sum_{j\neq i}
+	{\left(y_j-\beta_0-\bm{x}_j^T\bm{\beta}\right)^2}+
+	R(\beta_0,\bm{\beta}) \\
+	=&\frac{1}{2}\sum_{j=1}^n
+	{\left(y_j-\beta_0-\bm{x}_j^T\bm{\beta}\right)^2}+
+	R(\beta_0,\bm{\beta})-\frac{1}{2}\left(y_i-\beta_0-\bm{x}_i^T\bm{\beta}\right)^2 \\
+	\end{aligned}$$
+	
+	\subsection{Primal Domain}
+	
+	Under the primal domain, we can notice that the loss function is smooth and the regularizer is not smooth, which has one zero-order singularity $K=\{0\}$ for all of the parameters except $\beta_0$.
+	
+	Assuming $\hat{\beta}_0,\hat{\bm{\beta}}$ are the estimated parameters under the full dataset.
+	
+	Define active set $A=\{i:\beta_i\not\in K,i=1,...,p\}$. Then based on the formula (31), we can compute $\bm{H}$ as 
+	$$\bm{H}=\left[\bm{1}_n,\bm{X}_{\cdot A}\right]\left\{\left[\bm{1}_n,\bm{X}_{\cdot A}\right]^T\bm{D}\left[\bm{1}_n,\bm{X}_{\cdot A}\right]+\nabla^2R\left(\hat{\beta}_0,\hat{\bm{\beta}}_A\right)\right\}^{-1}\left[\bm{1}_n,\bm{X}_{\cdot A}\right]^T$$
+	where,
+	$$\bm{D}={\rm diag}\left(\ddot{l}\left(\hat{\beta}_0+\bm{x}_1^T\hat{\bm{\beta}};y_1\right),...,\ddot{l}\left(\hat{\beta}_0+\bm{x}_n^T\hat{\bm{\beta}};y_n\right)\right)=\bm{I}$$
+	$$\nabla^2R\left(\hat{\beta}_0,\hat{\bm{\beta}}_A\right)=\begin{bmatrix}
+	0 & & & \\
+	& 2\lambda_2 & & \\
+	& & \ddots & \\
+	& & & 2\lambda_2 \\
+	\end{bmatrix}$$
+	At last, we have
+	$$\begin{bmatrix}
+	1 & \bm{x}_i^T\end{bmatrix}
+	\begin{bmatrix}
+	\tilde{\beta}_0^{/i} \\
+	\tilde{\bm{\beta}}^{/i}\end{bmatrix}=\hat{\beta}_0+\bm{x}_i^T\hat{\bm{\beta}}+\frac{H_{ii}}{1-H_{ii}\ddot{l}\left(\hat{\beta}_0+\bm{x}_i^T\hat{\bm{\beta}};y_i\right)}\dot{l}\left(\hat{\beta}_0+\bm{x}_i^T\hat{\bm{\beta}};y_i\right)$$
+	
+	\subsection{Proximal Operator}
+	
+	Similar as formula (33), we can define the proximal operatro as
+	$$\begin{bmatrix}
+	\hat{\beta}_0^{/i} \\
+	\hat{\bm{\beta}}^{/i}\end{bmatrix}=
+	\bm{{\rm prox}}_{R(\cdot)}\left(\begin{bmatrix}
+	\hat{\beta}_0^{/i} \\
+	\hat{\bm{\beta}}^{/i}\end{bmatrix}-
+	\sum_{j\neq i}\begin{bmatrix}
+	1 \\
+	\bm{x}_j\end{bmatrix}
+	\dot{l}\left(\hat{\beta}_0^{/i}+\bm{x}_j^T\hat{\bm{\beta}}^{/i};y_j\right)\right)$$
+	where, based on the first order condition, 
+	$$\sum_{j\neq i}
+	\dot{l}\left(\hat{\beta}_0^{/i}+\bm{x}_j^T\hat{\bm{\beta}}^{/i};y_j\right)=0$$
+	
+	Define 
+	$$\bm{u}=\begin{bmatrix}
+	\hat{\beta}_0^{/i} \\
+	\hat{\bm{\beta}}^{/i}\end{bmatrix}-
+	\sum_{j\neq i}\begin{bmatrix}
+	1 \\
+	\bm{x}_j\end{bmatrix}
+	\dot{l}\left(\hat{\beta}_0^{/i}+\bm{x}_j^T\hat{\bm{\beta}}^{/i};y_j\right)$$
+	Hence, for all of the point in the active set, $A=\{i:\beta_i\not\in K,i=1,...,p\}$, the Jacobian of proximal operator equals to 
+	$$\bm{J}_{E,E}=
+	\left[\bm{J}(\bm{u})\right]_{E,E}=
+	\begin{bmatrix}
+	1 & & & & \\
+	& 1+2\lambda_2 & & \\
+	& & 1+2\lambda_2 & \\
+	& & & \ddots & \\
+	& & & & 1+2\lambda_2\\
+	\end{bmatrix}^{-1},\ \ \ E={1}\cup \{i+1:i\in A\}$$
+	At last, using formula (45) and (45), we have
+	$$\begin{bmatrix}
+	1 & \bm{x}_i^T\end{bmatrix}
+	\begin{bmatrix}
+	\tilde{\beta}_0^{/i} \\
+	\tilde{\bm{\beta}}^{/i}\end{bmatrix}=
+	\hat{\beta}_0+\bm{x}_i^T\hat{\bm{\beta}}+\frac{H_{ii}}{1-H_{ii}\ddot{l}\left(\hat{\beta}_0+\bm{x}_i^T\hat{\bm{\beta}};y_i\right)}\dot{l}\left(\hat{\beta}_0+\bm{x}_i^T\hat{\bm{\beta}};y_i\right)$$
+	where, defining $\bm{X}^*=\begin{bmatrix}\bm{1}_n & \bm{X}\end{bmatrix}$, 
+	$$\bm{H}=\bm{X}_{\cdot,E}^*
+	\left[\bm{J}_{E,E}\bm{X}_{\cdot,E}^{*T}\bm{D}\bm{X}_{\cdot,E}^*+\bm{I}_{E,E}-\bm{J}_{E,E}\right]^{-1}
+	\bm{J}_{E,E}\bm{X}_{\cdot,E}^{*T}$$
+	$$\bm{D}={\rm diag}\left(\ddot{l}\left(\hat{\beta}_0+\bm{x}_1^T\hat{\bm{\beta}};y_1\right),...,\ddot{l}\left(\hat{\beta}_0+\bm{x}_n^T\hat{\bm{\beta}};y_n\right)\right)$$
+	
+	\section{GLMNET Optimization}
+	
+	Considering the Elastic Net optimization problem, 
+	$$\min_{\beta_0,\bm{\beta}}\frac{1}{2n}\sum_{j=1}^{n}\left(y_j-\beta_0-\bm{x}_j^T\bm{\beta}\right)^2+\frac{1}{2}\lambda(1-\alpha)\norm{\bm{\beta}}_2^2+\lambda\alpha\norm{\bm{\beta}}_1$$
+	However, in the documentation of 'glmnet' package, it notes that for "gaussian", glmnet standardizes y to have unit variance (using 1/n rather than 1/(n-1) formula) before computing its lambda sequence (and then unstandardizes the resulting coefficients); if you wish to reproduce/compare results with other software, best to supply a standardized y. The coefficients for any predictor variables with zero variance are set to zero for all values of lambda.	\\
+	
+	It means that the function is actually optimizing the following problem.
+	$$\min_{\beta_0,\bm{\beta}}\frac{1}{2n}\sum_{j=1}^{n}\left(y_j^*-\beta_0^*-\bm{x}_j^T\bm{\beta}^*\right)^2+\frac{1}{2}\lambda(1-\alpha)\norm{\bm{\beta}^*}_2^2+\lambda\alpha\norm{\bm{\beta}^*}_1$$
+	where,
+	$$\begin{cases}
+	y_j^*=\frac{y_j}{{\rm sd}(\bm{y})} \\
+	\beta_0^*=\frac{\beta_0}{{\rm sd}(\bm{y})} \\
+	\bm{\beta}^*=\frac{\bm{\beta}}{{\rm sd}(\bm{y})} \\
+	\end{cases}$$
+	So, the 'glmnet' function is actually optimizing
+	$$\begin{aligned}
+	\min_{\beta_0,\bm{\beta}}&\frac{1}{2n}\sum_{j=1}^{n}\left(y_j^*-\beta_0^*-\bm{x}_j^T\bm{\beta}^*\right)^2+\frac{1}{2}\lambda(1-\alpha)\norm{\bm{\beta}^*}_2^2+\lambda\alpha\norm{\bm{\beta}^*}_1 \\
+	=&\min_{\beta_0,\bm{\beta}}\frac{1}{2n}\sum_{j=1}^{n}\left(\frac{y_j}{{\rm sd}(\bm{y})}-\frac{\beta_0}{{\rm sd}(\bm{y})}-\frac{\bm{x}_j^T\bm{\beta}}{{\rm sd}(\bm{y})}\right)^2+\frac{1}{2}\frac{\lambda}{{\rm sd}(\bm{y})^2}(1-\alpha)\norm{\bm{\beta}}_2^2+\frac{\lambda}{{\rm sd}(\bm{y})}\alpha\norm{\bm{\beta}}_1 \\
+	\end{aligned}$$
+	\\
+	So, in order to coincide with the target optimization problem, we can rescale $\bm{y}$ and $\bm{X}$ by ${\rm sd}(\bm{y})$, $\lambda$  by ${\rm sd}(\bm{y})^2$, then we can get
+	$$\begin{aligned}\min_{\beta_0,\bm{\beta}}&\frac{1}{2n}\sum_{j=1}^{n}\left(y_j-\beta_0-\bm{x}_j^T\bm{\beta}^*\right)^2+\frac{1}{2}\lambda(1-\alpha)\norm{\bm{\beta}}_2^2+\lambda\alpha\norm{\bm{\beta}}_1 \\
+	=&\min_{\beta_0,\bm{\beta}}\frac{1}{2n}\sum_{j=1}^{n}\left(\frac{y_j}{{\rm sd}(\bm{y})}-\beta_0^*-\frac{\bm{x}_j^T}{{\rm sd}(\bm{y})}\bm{\beta}\right)^2+\frac{1}{2}\frac{\lambda}{{\rm sd}(\bm{y})^2}(1-\alpha)\norm{\bm{\beta}}_2^2+\frac{\lambda}{{\rm sd}(\bm{y})^2}\alpha\norm{\bm{\beta}}_1 \\
+	=&\min_{\beta_0,\bm{\beta}}\frac{1}{2n}\sum_{j=1}^{n}\left(y_j^*-\beta_0^*-\bm{x}_j^{*T}\bm{\beta}\right)^2+\frac{1}{2}\lambda^*(1-\alpha)\norm{\bm{\beta}}_2^2+\lambda^*\alpha\norm{\bm{\beta}}_1 \\
+	\end{aligned}$$
+	where,
+	$$\begin{cases}
+	\beta_0^*=\frac{\beta_0}{{\rm sd}(\bm{y})} \\
+	\lambda^*=\frac{\lambda}{{\rm sd}(\bm{y})^2}
+	\end{cases}$$
+	
+	\section{Multinomial}
+	\subsection{Loss function}
+	
+	Assume we have $K$ classes, $n$ observations $\bm{X}$, and $\bm{R}^p$ parameters $\bm{\beta}_{k}$ for each class. 
+	\\
+	
+	Define leave-$i$-out variables as 
+	$$\bm{y}_{(n-1)K\times 1}^{/i}=\{y_{jk}\}_{j\neq i}^{k=1,...,K}=
+	\begin{bmatrix}
+	\begin{bmatrix}
+	y_{11} \\
+	y_{12} \\
+	\vdots \\
+	y_{1K} \\
+	\end{bmatrix} \\
+	\begin{bmatrix}
+	y_{21} \\
+	y_{22} \\
+	\vdots \\
+	y_{2K} \\
+	\end{bmatrix} \\
+	\vdots \\
+	\begin{bmatrix}
+	y_{n1} \\
+	y_{n2} \\
+	\vdots \\
+	y_{nK} \\
+	\end{bmatrix} \\
+	\end{bmatrix},\ \ 
+	\bm{\mathcal{X}}_{(n-1)K\times pK}^{/i}=\begin{bmatrix}
+	\begin{bmatrix}
+	\bm{x}_1^T & 0 & \cdots & 0 \\
+	0 & \bm{x}_1^T & \cdots & 0 \\
+	\vdots & \vdots & \ddots & \vdots \\
+	0 & 0 & \cdots & \bm{x}_1^T \\
+	\end{bmatrix} \\
+	\begin{bmatrix}
+	\bm{x}_2^T & 0 & \cdots & 0 \\
+	0 & \bm{x}_2^T & \cdots & 0 \\
+	\vdots & \vdots & \ddots & \vdots \\
+	0 & 0 & \cdots & \bm{x}_2^T \\
+	\end{bmatrix} \\
+	\vdots \\
+	\begin{bmatrix}
+	\bm{x}_n^T & 0 & \cdots & 0 \\
+	0 & \bm{x}_n^T & \cdots & 0 \\
+	\vdots & \vdots & \ddots & \vdots \\
+	0 & 0 & \cdots & \bm{x}_n^T \\
+	\end{bmatrix} \\
+	\end{bmatrix},\ \ 
+	\bm{\mathcal{B}}=\begin{bmatrix}
+	\bm{\beta}_{1} \\
+	\bm{\beta}_{2} \\
+	\vdots \\
+	\bm{\beta}_{K} \\
+	\end{bmatrix}$$
+	
+	The loss function would be 
+	$$\begin{aligned}
+	l(\bm{\mathcal{B}})=&-\left\{\sum_{j\neq i}\left[\sum_{k=1}^K
+	y_{jk}\bm{x}_j^T\bm{\beta}_k-
+	\log\left(\sum_{k=1}^Ke^{\bm{x}_j^T\bm{\beta}_k}\right)
+	\right]\right\}\\
+	=&\sum_{j\neq i}\log\left(\sum_{k=1}^Ke^{\bm{x}_j^T\bm{\beta}_k}\right)-
+	\sum_{j\neq i}^n\sum_{k=1}^Ky_{jk}\bm{x}_j^T\bm{\beta}_k \\
+	\end{aligned}$$
+	
+	By taking the first order derivative, we get
+	$$\begin{aligned}
+	\frac{\partial l(\bm{\mathcal{B}})}{\partial\bm{\mathcal{B}}}=&
+	\begin{bmatrix}
+	\frac{\partial l(\bm{\mathcal{B}})}{\partial\bm{\beta}_{1}} \\
+	\vdots \\
+	\frac{\partial l(\bm{\mathcal{B}})}{\partial\bm{\beta}_{K}} \\
+	\end{bmatrix}=
+	\begin{bmatrix}
+	\sum_{j\neq i}\frac{\exp\left(\bm{x}_j^T\bm{\beta}_1\right)}{\sum_{k=1}^K\exp\left(\bm{x}_j^T\bm{\beta}_k\right)}\bm{x}_j-
+	\sum_{j\neq i}y_{j1}\bm{x}_j \\
+	\vdots \\
+	\sum_{j\neq i}\frac{\exp\left(\bm{x}_j^T\bm{\beta}_K\right)}{\sum_{k=1}^K\exp\left(\bm{x}_j^T\bm{\beta}_k\right)}\bm{x}_j-
+	\sum_{j\neq i}y_{jK}\bm{x}_j \\
+	\end{bmatrix} 
+	=\bm{\mathcal{X}}^{/iT}\begin{bmatrix}
+	\begin{bmatrix}\frac{\exp\left(\bm{x}_1^T\bm{\beta}_1\right)}{\sum_{k=1}^K\exp\left(\bm{x}_1^T\bm{\beta}_k\right)} \\
+	\vdots \\
+	\frac{\exp\left(\bm{x}_1^T\bm{\beta}_K\right)}{\sum_{k=1}^K\exp\left(\bm{x}_1^T\bm{\beta}_k\right)} \\
+	\end{bmatrix} \\
+	\begin{bmatrix}
+	\frac{\exp\left(\bm{x}_2^T\bm{\beta}_1\right)}{\sum_{k=1}^K\exp\left(\bm{x}_2^T\bm{\beta}_k\right)} \\
+	\vdots \\
+	\frac{\exp\left(\bm{x}_2^T\bm{\beta}_K\right)}{\sum_{k=1}^K\exp\left(\bm{x}_2^T\bm{\beta}_k\right)} \\
+	\end{bmatrix} \\
+	\vdots \\
+	\begin{bmatrix}
+	\frac{\exp\left(\bm{x}_n^T\bm{\beta}_1\right)}{\sum_{k=1}^K\exp\left(\bm{x}_n^T\bm{\beta}_k\right)} \\
+	\vdots \\
+	\frac{\exp\left(\bm{x}_n^T\bm{\beta}_K\right)}{\sum_{k=1}^K\exp\left(\bm{x}_n^T\bm{\beta}_k\right)} \\
+	\end{bmatrix} \\
+	\end{bmatrix}_{(n-1)K\times1}-\bm{\mathcal{X}}^{/iT}\bm{y}^{/i} \\
+	=&\bm{\mathcal{X}}^{/iT}\left[\bm{\mathcal{A}}^{/i}(\bm{\beta})-\bm{y}^{/i}\right]=\bm{\mathcal{X}}^{/iT}\left(
+	\begin{bmatrix}
+	\bm{A}_1(\bm{\beta}) \\
+	\bm{A}_2(\bm{\beta}) \\
+	\vdots \\
+	\bm{A}_n(\bm{\beta})
+	\end{bmatrix}-\bm{y}^{/i}\right)
+	\end{aligned}$$
+	\\
+	
+	Similarly, we can get
+	$$\frac{\partial^2l(\bm{\mathcal{B}})}{\partial\bm{\mathcal{B}}\partial\bm{\mathcal{B}}^T}=\bm{\mathcal{X}}^{/iT}\frac{\partial \bm{\mathcal{A}}^{/i}(\bm{\mathcal{B}})}{\partial\bm{\mathcal{B}}^T}=
+	\bm{\mathcal{X}}^{/iT}\begin{bmatrix}
+	\frac{\partial \bm{A}_1(\bm{\mathcal{B}})}{\partial\bm{\mathcal{B}}^T} \\
+	\frac{\partial \bm{A}_2(\bm{\mathcal{B}})}{\partial\bm{\mathcal{B}}^T} \\
+	\vdots \\
+	\frac{\partial \bm{A}_n(\bm{\mathcal{B}})}{\partial\bm{\mathcal{B}}^T} \\
+	\end{bmatrix}$$
+	where,
+	$$\begin{aligned}\frac{\partial \bm{A}_j(\bm{\mathcal{B}})}{\partial\bm{\mathcal{B}}^T}=&
+	\begin{bmatrix}
+	\frac{\exp\left(\bm{x}_j^T\bm{\beta}_1\right)}{\sum_{k=1}^K\exp\left(\bm{x}_j^T\bm{\beta}_k\right)} & 0 & \cdots & 0 \\
+	0 & \frac{\exp\left(\bm{x}_j^T\bm{\beta}_2\right)}{\sum_{k=1}^K\exp\left(\bm{x}_j^T\bm{\beta}_k\right)} & \cdots & 0 \\
+	\vdots & \vdots & \ddots & \vdots \\
+	0 & 0 & \cdots &  \frac{\exp\left(\bm{x}_j^T\bm{\beta}_K\right)}{\sum_{k=1}^K\exp\left(\bm{x}_j^T\bm{\beta}_k\right)}
+	\end{bmatrix}_{K\times K}
+	\begin{bmatrix}
+	\bm{x}_j^T & 0 & \cdots & 0 \\
+	0 & \bm{x}_j^T & \cdots & 0 \\
+	\vdots & \vdots & \ddots & \vdots \\
+	0 & 0 & \cdots & \bm{x}_j^T \\
+	\end{bmatrix}_{K\times pK} \\
+	&-\begin{bmatrix}
+	\frac{\exp\left(\bm{x}_j^T\bm{\beta}_1\right)}{\sum_{k=1}^K\exp\left(\bm{x}_j^T\bm{\beta}_k\right)} \\
+	\frac{\exp\left(\bm{x}_j^T\bm{\beta}_2\right)}{\sum_{k=1}^K\exp\left(\bm{x}_j^T\bm{\beta}_k\right)} \\
+	\vdots \\
+	\frac{\exp\left(\bm{x}_j^T\bm{\beta}_K\right)}{\sum_{k=1}^K\exp\left(\bm{x}_j^T\bm{\beta}_k\right)}
+	\end{bmatrix}_{K\times 1}
+	\begin{bmatrix}
+	\frac{\exp\left(\bm{x}_j^T\bm{\beta}_1\right)}{\sum_{k=1}^K\exp\left(\bm{x}_j^T\bm{\beta}_k\right)} &
+	\frac{\exp\left(\bm{x}_j^T\bm{\beta}_2\right)}{\sum_{k=1}^K\exp\left(\bm{x}_j^T\bm{\beta}_k\right)} &
+	\cdots &
+	\frac{\exp\left(\bm{x}_j^T\bm{\beta}_K\right)}{\sum_{k=1}^K\exp\left(\bm{x}_j^T\bm{\beta}_k\right)}
+	\end{bmatrix}_{1\times K}
+	\begin{bmatrix}
+	\bm{x}_j^T & 0 & \cdots & 0 \\
+	0 & \bm{x}_j^T & \cdots & 0 \\
+	\vdots & \vdots & \ddots & \vdots \\
+	0 & 0 & \cdots & \bm{x}_j^T \\
+	\end{bmatrix}_{K\times pK} \\
+	=&\left[{\rm diag}\left(\bm{A}_j(\bm{\mathcal{B}})\right)-\bm{A}_j(\bm{\mathcal{B}})\bm{A}_j(\bm{\mathcal{B}})^T\right]_{K\times K}
+	\begin{bmatrix}
+	\bm{x}_j^T & 0 & \cdots & 0 \\
+	0 & \bm{x}_j^T & \cdots & 0 \\
+	\vdots & \vdots & \ddots & \vdots \\
+	0 & 0 & \cdots & \bm{x}_j^T \\
+	\end{bmatrix}_{K\times pK} \\
+	\end{aligned}$$
+	
+	So, we have
+	$$\begin{aligned}
+	\frac{\partial^2l(\bm{\mathcal{B}})}{\partial\bm{\mathcal{B}}\partial\bm{\mathcal{B}}^T}=&\bm{\mathcal{X}}^{/iT}\frac{\partial \bm{\mathcal{A}}^{/i}(\bm{\mathcal{B}})}{\partial\bm{\mathcal{B}}^T}=
+	\bm{\mathcal{X}}^{/iT}\begin{bmatrix}
+	\frac{\partial \bm{A}_1(\bm{\mathcal{B}})}{\partial\bm{\mathcal{B}}^T} \\
+	\frac{\partial \bm{A}_2(\bm{\mathcal{B}})}{\partial\bm{\mathcal{B}}^T} \\
+	\vdots \\
+	\frac{\partial \bm{A}_n(\bm{\mathcal{B}})}{\partial\bm{\mathcal{B}}^T} \\
+	\end{bmatrix} \\
+	=&\bm{\mathcal{X}}^{/iT}
+	\begin{bmatrix}
+	\left[{\rm diag}\left(\bm{A}_1(\bm{\mathcal{B}})\right)-\bm{A}_1(\bm{\mathcal{B}})\bm{A}_1(\bm{\mathcal{B}})^T\right]_{K\times K}
+	\begin{bmatrix}
+	\bm{x}_1^T & 0 & \cdots & 0 \\
+	0 & \bm{x}_1^T & \cdots & 0 \\
+	\vdots & \vdots & \ddots & \vdots \\
+	0 & 0 & \cdots & \bm{x}_1^T \\
+	\end{bmatrix}_{K\times pK} \\
+	\left[{\rm diag}\left(\bm{A}_2(\bm{\mathcal{B}})\right)-\bm{A}_2(\bm{\mathcal{B}})\bm{A}_2(\bm{\mathcal{B}})^T\right]_{K\times K}
+	\begin{bmatrix}
+	\bm{x}_2^T & 0 & \cdots & 0 \\
+	0 & \bm{x}_2^T & \cdots & 0 \\
+	\vdots & \vdots & \ddots & \vdots \\
+	0 & 0 & \cdots & \bm{x}_2^T \\
+	\end{bmatrix}_{K\times pK} \\
+	\vdots \\
+	\left[{\rm diag}\left(\bm{A}_n(\bm{\mathcal{B}})\right)-\bm{A}_n(\bm{\mathcal{B}})\bm{A}_n(\bm{\mathcal{B}})^T\right]_{K\times K}
+	\begin{bmatrix}
+	\bm{x}_n^T & 0 & \cdots & 0 \\
+	0 & \bm{x}_n^T & \cdots & 0 \\
+	\vdots & \vdots & \ddots & \vdots \\
+	0 & 0 & \cdots & \bm{x}_n^T \\
+	\end{bmatrix}_{K\times pK} \\
+	\end{bmatrix}_{(n-1)K\times pK} \\
+	=&\bm{\mathcal{X}}^{/iT}
+	\bm{\mathcal{D}}_{(n-1)K\times (n-1)K}^{/i}(\bm{\mathcal{B}})\bm{\mathcal{X}}^{/i} \\
+	\end{aligned}$$
+	
+	where,
+	$$\bm{\mathcal{D}}^{/i}(\bm{\mathcal{B}})=\begin{bmatrix}
+	\left[{\rm diag}\left(\bm{A}_1(\bm{\mathcal{B}})\right)-\bm{A}_1(\bm{\mathcal{B}})\bm{A}_1(\bm{\mathcal{B}})^T\right] & 0 & \cdots & 0 \\
+	0 & \left[{\rm diag}\left(\bm{A}_2(\bm{\mathcal{B}})\right)-\bm{A}_2(\bm{\mathcal{B}})\bm{A}_2(\bm{\mathcal{B}})^T\right] & \cdots & 0 \\
+	\vdots & \vdots & \ddots & \vdots \\
+	0 & 0 & \cdots & \left[{\rm diag}\left(\bm{A}_n(\bm{\mathcal{B}})\right)-\bm{A}_n(\bm{\mathcal{B}})\bm{A}_n(\bm{\mathcal{B}})^T\right] \\
+	\end{bmatrix}$$
+	
+	\subsection{Newton's Method}
+	
+	With Newton's method, we have the one step update as
+	$$\begin{aligned}
+	\tilde{\bm{\mathcal{B}}}^{/i}=&
+	\hat{\bm{\mathcal{B}}}-\left[\bm{\mathcal{X}}^{/iT}
+	\bm{\mathcal{D}}^{/i}(\bm{\mathcal{B}})\bm{\mathcal{X}}^{/i}+\nabla^2R(\bm{\mathcal{B}})\right]^{-1}\left[\bm{\mathcal{X}}^{/iT}\left(\bm{\mathcal{A}}^{/iT}(\bm{\mathcal{B}})-\bm{y}^{/i}\right)+\nabla R(\bm{\mathcal{B}})\right] \\
+	=&\hat{\bm{\mathcal{B}}}+\left[\bm{\mathcal{X}}^T
+	\bm{\mathcal{D}}(\bm{\mathcal{B}})\bm{\mathcal{X}}+\nabla^2R(\bm{\mathcal{B}})-\bm{X}_i^T\left[{\rm diag}\left(\bm{A}_i(\bm{\mathcal{B}})\right)-\bm{A}_i(\bm{\mathcal{B}})\bm{A}_i(\bm{\mathcal{B}})^T\right]\bm{X}_i\right]^{-1}\bm{X}_i^T\left(\bm{A}_i(\bm{\mathcal{B}})-\bm{y}_i\right) \\
+	\end{aligned}$$
+	where,
+	$$\bm{X}_i=
+	\begin{bmatrix}
+	\bm{x}_i^T & 0 & \cdots & 0 \\
+	0 & \bm{x}_i^T & \cdots & 0 \\
+	\vdots & \vdots & \ddots & \vdots \\
+	0 & 0 & \cdots & \bm{x}_i^T \\
+	\end{bmatrix}_{K\times pK},\ \ 
+	\bm{y}_i=\begin{bmatrix}
+	y_{i1} \\
+	y_{i2} \\
+	\vdots \\
+	y_{iK} \\
+	\end{bmatrix}$$
+	\\
+	
+	Defining $\bm{\mathcal{K}}(\bm{\mathcal{B}})=
+	\bm{\mathcal{X}}^T
+	\bm{\mathcal{D}}(\bm{\mathcal{B}})\bm{\mathcal{X}}+\nabla^2R(\bm{\mathcal{B}})$, with matrix inversion lemma, we can get
+	$$\begin{aligned}
+	\tilde{\bm{\mathcal{B}}}^{/i}
+	=&\hat{\bm{\mathcal{B}}}+\left[\bm{\mathcal{K}}(\bm{\mathcal{B}})-\bm{X}_i^T\left[{\rm diag}\left(\bm{A}_i(\bm{\mathcal{B}})\right)-\bm{A}_i(\bm{\mathcal{B}})\bm{A}_i(\bm{\mathcal{B}})^T\right]\bm{X}_i\right]^{-1}\bm{X}_i^T\left(\bm{A}_i(\bm{\mathcal{B}})-\bm{y}_i\right) \\
+	=&\bm{\mathcal{B}}+\bm{\mathcal{K}}(\bm{\mathcal{B}})^{-1}\bm{X}_i^T\left(\bm{A}_i(\bm{\mathcal{B}})-\bm{y}_i\right) \\
+	&-
+	\bm{\mathcal{K}}(\bm{\mathcal{B}})^{-1}\bm{X}_i^T\left\{-\left[{\rm diag}\left(\bm{A}_i(\bm{\mathcal{B}})\right)-\bm{A}_i(\bm{\mathcal{B}})\bm{A}_i(\bm{\mathcal{B}})^T\right]^{-1}+\bm{X}_i\bm{\mathcal{K}}(\bm{\mathcal{B}})^{-1}\bm{X}_i^T\right\}^{-1}\bm{X}_i\bm{\mathcal{K}}(\bm{\mathcal{B}})^{-1}\bm{X}_i^T\left(\bm{A}_i(\bm{\mathcal{B}})-\bm{y}_i\right)
+	\end{aligned}$$
+	
+	\subsection{Approximate Leave-$i$-Out Prediction}
+	
+	Given the approximate leave-$i$-out estimation, we can do the approximate leave-$i$-out prediciton as 
+	
+	$$\begin{aligned}
+	\bm{y}_{i}^{/i}=&
+	\begin{bmatrix}
+	y_{i1}^{/i} \\
+	\vdots \\
+	y_{iK}^{/i} \\
+	\end{bmatrix}=
+	\bm{X}_i\tilde{\bm{\mathcal{B}}}^{/i} \\
+	=&\bm{X}_i\bm{\mathcal{B}}+\bm{X}_i\bm{\mathcal{K}}(\bm{\mathcal{B}})^{-1}\bm{X}_i^T\left(\bm{A}_i(\bm{\mathcal{B}})-\bm{y}_i\right)\\
+	&-\bm{X}_i
+	\bm{\mathcal{K}}(\bm{\mathcal{B}})^{-1}\bm{X}_i^T\left\{-\left[{\rm diag}\left(\bm{A}_i(\bm{\mathcal{B}})\right)-\bm{A}_i(\bm{\mathcal{B}})\bm{A}_i(\bm{\mathcal{B}})^T\right]^{-1}+\bm{X}_i\bm{\mathcal{K}}(\bm{\mathcal{B}})^{-1}\bm{X}_i^T\right\}^{-1}\bm{X}_i\bm{\mathcal{K}}(\bm{\mathcal{B}})^{-1}\bm{X}_i^T\left(\bm{A}_i(\bm{\mathcal{B}})-\bm{y}_i\right) \\
+	\end{aligned}$$
+	
+	
+	\section{Computational Complexity Analysis}
+	
+	\subsection{Regular ALO}
+	
+	Here, we take the loss function 
+	$$l\left(\bm{x}_j^T\bm{\beta};y_j\right)=\left(y_j-\bm{x}_j^T\bm{\beta}\right)^2$$
+	
+	and regularizer
+	$$R(\bm{\beta})=\lambda_1\norm{\bm{\beta}}_1+\lambda_2\norm{\bm{\beta}}_2^2$$
+	
+	Under the Regular ALO case, we need to do the following linear algebra computation.
+	\\
+	
+	Assuming the active set is $E$, then we have
+	$$\left(\bm{X}^T\bm{X}\right)_{E,E}+\nabla^2 R\left(\bm{\beta}_E\right),\ \ O(|E|^2)$$
+	$$\left[\left(\bm{X}^T\bm{X}\right)_{E,E}+
+	\nabla^2 R\left(\bm{\beta}_E\right)\right]^{-1},\ \ O(|E|^3)$$
+	$$\bm{H}=\bm{X}_{\cdot E}
+	\left[\left(\bm{X}^T\bm{X}\right)_{E,E}+
+	\nabla^2 R\left(\bm{\beta}_E\right)\right]^{-1}
+	\bm{X}_{\cdot E}^T,\ \ O(n|E|^2)+O(n|E|)\rightarrow O\left(n|E|^2\right)$$
+	$$\frac{{\rm diag}\left(\bm{H}\right)}{1-{\rm diag}\left(\bm{H}\right)}.\times\left(\bm{X}\bm{\beta}-\bm{y}\right),\ \ O(n)+O(np)+O(n)+O(n)\rightarrow O(np)$$
+	\\
+	
+	So, the final computational complexity for regular ALO method is 
+	$$O(|E|^3)+O\left(n|E|^2\right)\rightarrow O\left(|E|^2\max\{n,|E|\}\right)$$
+	
+	\subsection{Block Inversion Lemma in ALO}
+	
+	Here, we take the loss function 
+	$$l\left(\bm{x}_j^T\bm{\beta};y_j\right)=\left(y_j-\bm{x}_j^T\bm{\beta}\right)^2$$
+	
+	and regularizer
+	$$R(\bm{\beta})=\lambda_1\norm{\bm{\beta}}_1+\lambda_2\norm{\bm{\beta}}_2^2$$
+	
+	Under the Block Inversion ALO case, we need to do the following linear algebra computation.
+	\\
+	
+	Assume the last active set is $E_t$. 
+	
+	At this step, we need to do the following
+	
+	$$E_t=E_{t1}\cup E_{t2}\overset{{\rm drop}}{\longrightarrow}E_{t1}\overset{{\rm add}}{\longrightarrow}E_{t+1}=E_{t1}\cup E_{t3}$$
+	
+	At the drop step,
+	$$\begin{aligned}
+	\bm{A}_t^{-1}
+	=&\left(\bm{X}^T\bm{X}+\nabla^2R(\bm{\beta})\right)_{E_{t}E_{t}}^{-1}
+	=\begin{bmatrix}
+	\left(\bm{X}^T\bm{X}+\nabla^2R(\bm{\beta})\right)_{E_{t1}E_{t1}} & 
+	\left(\bm{X}^T\bm{X}+\nabla^2R(\bm{\beta})\right)_{E_{t1}E_{t2}} \\
+	\left(\bm{X}^T\bm{X}+\nabla^2R(\bm{\beta})\right)_{E_{t2}E_{t1}} & 
+	\left(\bm{X}^T\bm{X}+\nabla^2R(\bm{\beta})\right)_{E_{t2}E_{t2}} \\
+	\end{bmatrix}^{-1} \\
+	=&\begin{bmatrix}
+	\bm{A}_{11} & \bm{A}_{12} \\
+	\bm{A}_{21} & \bm{A}_{22} \\
+	\end{bmatrix} \\
+	\Rightarrow  \left(\bm{X}^T\bm{X}+\nabla^2R(\bm{\beta})\right)_{E_{t1}E_{t1}}^{-1}=&\bm{A}_{11}-\bm{A}_{12}\bm{A}_{22}^{-1}\bm{A}_{21} \\
+	\end{aligned}$$
+	$$\Rightarrow O(|E_{t2}|^3)+O(|E_{t1}| |E_{t2}|^2)+O(|E_{t1}|^2|E_{t2}|)+O(|E_{t1}|^2)
+	\rightarrow O(|E_{t2}|\max\{|E_{t1}|,|E_{t2}|\}^2)$$
+	
+	At the addition step,
+	$$\begin{aligned}
+	\bm{A}_{t+1}^{-1}
+	=&\left(\bm{X}^T\bm{X}+\nabla^2R(\bm{\beta})\right)_{E_{t+1}E_{t+1}}^{-1}
+	=\begin{bmatrix}
+	\left(\bm{X}^T\bm{X}+\nabla^2R(\bm{\beta})\right)_{E_{t1}E_{t1}} & 
+	\left(\bm{X}^T\bm{X}+\nabla^2R(\bm{\beta})\right)_{E_{t1}E_{t3}} \\
+	\left(\bm{X}^T\bm{X}+\nabla^2R(\bm{\beta})\right)_{E_{t3}E_{t1}} & 
+	\left(\bm{X}^T\bm{X}+\nabla^2R(\bm{\beta})\right)_{E_{t3}E_{t3}} \\
+	\end{bmatrix}^{-1} \\
+	=&\begin{bmatrix}
+	\bm{A}_{11} & \bm{A}_{13} \\
+	\bm{A}_{31} & \bm{A}_{33} \\
+	\end{bmatrix}^{-1} \\
+	=&\begin{bmatrix}
+	\bm{A}_{11}^{-1}+\bm{A}_{11}^{-1}\bm{A}_{13}\bm{E}\bm{A}_{31}\bm{A}_{11}^{-1} & -\bm{A}_{11}^{-1}\bm{A}_{13}\bm{E} \\
+	-\bm{E}\bm{A}_{31}\bm{A}_{11}^{-1} & \bm{E} \\
+	\end{bmatrix},\ \ where\ 
+	\bm{E}=\left(\bm{A}_{33}-\bm{A}_{31}\bm{A}_{11}^{-1}\bm{A}_{13}\right)^{-1}\\
+	\end{aligned}$$
+	$$\Rightarrow\begin{cases}
+	O(|E_{t1}|^2|E_{t3}|)+O(|E_{t1}||E_{t3}|^2)+O(|E_{t3}|^3)\rightarrow O(|E_{t3}|\max\{|E_{t1}|,|E_{t3}|\}^2) \\
+	O(|E_{t1}||E_{t3}|^2)+O(|E_{t1}|^2|E_{t3}|)\rightarrow O(|E_{t1}||E_{t3}|\max\{|E_{t1}|,|E_{t3}|\}) \\
+	O(|E_{t1}||E_{t3}|^2) \\
+	\end{cases} $$
+	$$\Rightarrow O(|E_{t3}|\max\{|E_{t1}|,|E_{t3}|\}^2)$$
+	
+	At the Schulz Iteration step, for start point,
+	$$\bm{V}_0=\left[\bm{I}-(\lambda_{t+1,2}-\lambda_{t,2})\bm{A}_{t+1}^{-1}\right]\bm{A}_{t+1}^{-1},\ \ O(|E_{t+1}|^3)$$
+	for each iteration,
+	$$\bm{V}_{k+1}=\bm{V}_{k}(2\bm{I}-\bm{F}_{t+1}\bm{V}_{k}),\ \ where\ \bm{F}_{t+1}=\left(\bm{X}^T\bm{X}+\nabla^2R(\bm{\beta}_{t+1})\right)_{E_{t+1}E_{t+1}},\ \ O(|E_{t+1}|^3)$$
+	
+	At the final step,
+	$$\bm{H}=\bm{X}_{\cdot E_{t+1}}
+	\bm{V}_{\inf}
+	\bm{X}_{\cdot E_{t+1}}^T,\ \ O(n|E_{t+1}|^2)+O(n|E_{t+1}|)\rightarrow O\left(n|E_{t+1}|^2\right)$$
+	$$\frac{{\rm diag}\left(\bm{H}\right)}{1-{\rm diag}\left(\bm{H}\right)}.\times\left(\bm{X}\bm{\beta}-\bm{y}\right),\ \ O(n)+O(np)+O(n)+O(n)\rightarrow O(np)$$
+	\\
+	
+	So, the final computational complexity for Block Inversion ALO method is 
+	$$O(|E_{t+1}|^3)+O\left(n|E_{t+1}|^2\right)\rightarrow O\left(|E_{t+1}|^2\max\{n,|E_{t+1}|\}\right)$$
+	
+	\section{Cholesky Decompostion in Elastic Net}
+	
+	\subsection{Definition}
+	
+	Define the original design matrix as $\bm{X}_{n\times p}$, active set $E_t$ corresponding to the parameter $\lambda_{t}$. The second order derivative of regularization function is $\nabla^2R(\bm{\beta})$
+	
+	\subsection{Cholesky Decompostion}
+	
+	Here, assuming we already know the Cholesky decomposition of 
+	$$\bm{X}_{\cdot E_{t-1}}^T\bm{X}_{\cdot E_{t-1}}
+	=\bm{L}_{t-1}\bm{L}_{t-1}^T$$
+	and at this step, we want to find out the Cholesky decomposition of 
+	$$\bm{X}_{\cdot E_{t}}^T\bm{X}_{\cdot E_{t}}+\nabla^2R(\bm{\beta}_{t})$$
+	
+	Under the Elastic Net case, we have
+	$$\begin{aligned}
+	\nabla^2R(\bm{\beta}_{t})=&
+	\begin{bmatrix}
+	0 & 0 & 0 & \cdots & 0 \\
+	0 & 2\lambda_2 & 0 & \cdots & 0 \\
+	0 & 0 & 2\lambda_2 & \cdots & 0 \\
+	\vdots & \vdots & \vdots & \ddots & \vdots \\
+	0 & 0 & 0 & \cdots & 2\lambda_2 \\
+	\end{bmatrix} \\
+	=&\begin{bmatrix}
+	0 \\
+	\sqrt{2\lambda_2} \\
+	0 \\
+	\vdots \\
+	0 \\
+	\end{bmatrix}\begin{bmatrix}
+	0 & \sqrt{2\lambda_2} & 0 & \cdots & 0 \\
+	\end{bmatrix}+
+	\begin{bmatrix}
+	0 \\
+	0 \\
+	\sqrt{2\lambda_2} \\
+	\vdots \\
+	0 \\
+	\end{bmatrix}\begin{bmatrix}
+	0 & 0 & \sqrt{2\lambda_2} & \cdots & 0 \\
+	\end{bmatrix}+\cdots \\
+	=&\bm{r}_2\bm{r}_2^T+\bm{r}_3\bm{r}_3^T+\cdots+\bm{r}_{|E_t|}\bm{r}_{|E_t|}^T\\
+	\end{aligned}$$
+	
+	So, at each step, we can first update the Cholesky decomposition of 
+	$$\bm{X}_{\cdot E_{t-1}}^T\bm{X}_{\cdot E_{t-1}}
+	=\bm{L}_{t-1}\bm{L}_{t-1}^T
+	\overset{Cholesky\ Update}{\Longrightarrow}\bm{X}_{\cdot E_{t}}^T\bm{X}_{\cdot E_{t}}
+	=\bm{L}_{t}\bm{L}_{t}^T$$
+	Then, based on the rank-one update, we can find out
+	$$\bm{X}_{\cdot E_{t}}^T\bm{X}_{\cdot E_{t}}
+	+\nabla^2R(\bm{\beta}_{t})=
+	\bm{X}_{\cdot E_{t}}^T\bm{X}_{\cdot E_{t}}
+	+\bm{r}_2\bm{r}_2^T+\bm{r}_3\bm{r}_3^T
+	+\cdots+\bm{r}_{|E_t|}\bm{r}_{|E_t|}^T$$
+	
+	Here we can use Cholesky rank-one update to find the Cholesky decomposition of $\bm{X}_{\cdot E_{t}}^T\bm{X}_{\cdot E_{t}}
+	+\nabla^2R(\bm{\beta}_{t})$.
+	
+	
+\end{document}
