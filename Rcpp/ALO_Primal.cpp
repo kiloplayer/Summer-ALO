@@ -46,6 +46,38 @@ vec ElasticNetALO(const vec &beta, const double &intercept,
   return y_alo;
 }
 
+
+// [[Rcpp::export]]
+vec ElasticNetALO_Weight(const vec &beta, const bool &intercept, 
+                         const mat &X, const vec &y, const vec &weights, 
+                         const mat &XWX, const double &lambda, const double &alpha) {
+  // compute prediction
+  vec y_hat = X * beta;
+  // find active set
+  uvec A = find(beta != 0);
+  if(intercept) {
+    A.insert_rows(0, 0);
+    A = unique(A);
+  }
+  // compute matrix H
+  vec diag_HW(X.n_rows, fill::zeros);
+  if(!A.is_empty()) {
+    vec R_diff2(A.n_elem, fill::ones);
+    R_diff2 = R_diff2 * sum(weights) * lambda * (1 - alpha);
+    if(intercept) {
+      R_diff2(0) = 0;
+    }
+    mat middle = XWX(A, A);
+    middle.diag() = middle.diag() + R_diff2;
+    middle = inv_sympd(middle);
+    diag_HW = sum((X.cols(A) * middle) % X.cols(A), 1) % weights;
+  }
+  // compute the ALO prediction
+  vec y_alo = y_hat + diag_HW % (y_hat - y) / (1 - diag_HW);
+  return y_alo;
+}
+
+
 // [[Rcpp::export]]
 vec LogisticALO(vec beta, double intercept, 
                 mat X, vec y, 
@@ -88,6 +120,42 @@ vec LogisticALO(vec beta, double intercept,
   vec y_alo = exp(y_alo_linear) / (1 + exp(y_alo_linear));
   return y_alo;
 }
+
+// [[Rcpp::export]]
+vec LogisticALO_Weight(const vec &beta, const bool &intercept, 
+                       const mat &X, const vec &y, const vec &weights,
+                       const double &lambda, const double &alpha) {
+  // compute linear prediction
+  vec y_linear = X * beta;
+  vec y_exp = exp(y_linear);
+  // find active set
+  uvec A = find(beta != 0);
+  if(intercept) {
+    A.insert_rows(0, 0);
+    A = unique(A);
+  }
+  // compute matrix D
+  vec D = y_exp / ((1 + y_exp) % (1 + y_exp));
+  // compute matrix H
+  vec diag_HW(X.n_rows, fill::zeros);
+  if(!A.is_empty()) {
+    mat X_active = X.cols(A);
+    vec R_diff2(A.n_elem, fill::ones);
+    R_diff2 = R_diff2 * sum(weights) * lambda * (1 - alpha);
+    if(intercept) {
+      R_diff2(0) = 0;
+    }
+    mat middle = X_active.t() * diagmat(D % weights) * X_active;
+    middle.diag() = middle.diag() + R_diff2;
+    middle = inv_sympd(middle);
+    diag_HW = sum((X_active * middle) % X_active, 1) % weights;
+  }
+  // compute the ALO prediction
+  vec y_alo_linear = y_linear + diag_HW % (y_exp / (1 + y_exp) - y) / (1 - diag_HW % D);
+  vec y_alo = exp(y_alo_linear) / (1 + exp(y_alo_linear));
+  return y_alo;
+}
+
 
 // [[Rcpp::export]]
 vec PoissonALO(vec beta, double intercept, 
@@ -191,6 +259,71 @@ mat MultinomialALO(vec beta, bool intercept,
   return(y_alo);
 }
 
+// [[Rcpp::export]]
+mat MultinomialALO_Weight(const vec &beta, const bool &intercept, 
+                          const mat &X, const mat &X_Sp, const mat &y_mat,
+                          const vec &weights, 
+                          const double &lambda, const double &alpha) {
+  // find out the dimension of X
+  double n = X.n_rows; // N
+  double p; // P
+  if (intercept) {
+    p = X.n_cols - 1;
+  } else {
+    p = X.n_cols;
+  }
+  double num_class = y_mat.n_cols; // K
+  // find the active set
+  uvec E = find(beta != 0);
+  if (intercept) {
+    uvec idx = regspace<uvec>(0, num_class - 1) * (p + 1);
+    E.insert_rows(0, idx);
+    E = unique(E);
+  }
+  // compute vector A(beta) and matrix D(beta)
+  vec A(n * num_class, fill::none);
+  mat D(n * num_class, n * num_class, fill::zeros);
+  for (uword i = 0; i < n; ++i) {
+    uvec idx = regspace<uvec>(i * num_class, 1, (i + 1) * num_class - 1);
+    A(idx) = exp(X_Sp.rows(idx) * beta);
+    A(idx) = A(idx) / sum(A(idx));
+    D(idx, idx) = weights(i) * (diagmat(A(idx)) - A(idx) * A(idx).t());
+  }
+  // compute R_diff2
+  vec R_diff2((p + 1) * num_class, fill::ones);
+  R_diff2 = R_diff2 * sum(weights) * lambda * (1 - alpha);
+  if(intercept) {
+    uvec idx = regspace<uvec>(0, num_class - 1) * (p + 1);
+    R_diff2(idx) = R_diff2(idx) * 0;
+  }
+  // compute matrix K(beta) and its inverse
+  mat K_inv = X_Sp.cols(E).t() * D * X_Sp.cols(E);
+  K_inv.diag() = K_inv.diag() + R_diff2(E);
+  K_inv = pinv(K_inv, 0);
+  // do leave-i-out prediction
+  mat y_alo(n, num_class, fill::none);
+  for (uword i = 0; i < n; ++i) {
+    // find the X_i and y_i
+    uvec idx = regspace<uvec>(i * num_class, 1, (i + 1) * num_class - 1);
+    mat X_i = X_Sp.rows(idx);
+    vec y_i = conv_to<vec>::from(y_mat.row(i));
+    // find A_i
+    vec A_i = A(idx);
+    // compute XKX
+    mat XKX = X_i.cols(E) * K_inv * X_i.cols(E).t();
+    // compute the inversion of diag(A)-A*A^T
+    mat middle_inv = pinv(weights(i) * (diagmat(A_i) - A_i * A_i.t()), 0);
+    // compute the leave-i-out prediction
+    vec y_linear = X_i * beta + XKX * 
+      (eye<mat>(num_class, num_class) - pinv(-middle_inv + XKX, 0) * XKX) * 
+      (weights(i) * (A_i - y_i));
+    vec y_exp = exp(y_linear);
+    y_alo.row(i) = conv_to<rowvec>::from(y_exp) / sum(y_exp);
+  }
+  // return alo
+  return(y_alo);
+}
+
 
 // [[Rcpp::export]]
 vec GenLASSOALO(vec beta, vec u, mat X, vec y, mat D, 
@@ -247,6 +380,56 @@ field<mat> CholeskyAdd(mat X, mat L,
   L_out.submat(span(0, L.n_rows - 1), span(0, L.n_cols - 1)) = L;
   L_out.submat(span(0, L.n_rows - 1), span(L.n_cols, L_out.n_cols - 1)) = S12;
   L_out.submat(span(L.n_rows, L_out.n_rows - 1), span(L.n_cols, L_out.n_cols - 1)) = chol(X(idx_add, idx_add) - S12.t() * S12);
+  // find the output index for Cholesky decomposition
+  uvec idx_out = idx_old;
+  idx_out.resize(idx_new.n_elem);
+  idx_out(span(idx_old.n_elem, idx_out.n_elem - 1)) = idx_add;
+  // output
+  field<mat> out(2);
+  out(0) = L_out;
+  out(1) = conv_to<mat>::from(idx_out);
+  return out;
+}
+
+// [[Rcpp::export]]
+field<mat> CholeskyAdd_Weight(const mat &XWX, const mat &L, 
+                              const uvec &idx_old, const uvec &idx_new) {
+  // XWX - t(X) %*% W %X% X
+  // L - upper triangle matrix of Cholesky decomposition for XWX[idx_old, idx_old]
+  // idx_old - old index of L for the XWX[idx_old, idx_old]
+  // idx_new - find the Cholesky decomposition for XWX[idx_new, idx_new], 
+  //           where idx_old \in idx_new
+  
+  // if idx_old is empty, just find the Cholesky of the idx_new
+  if (idx_old.is_empty() && !idx_new.is_empty()) {
+    mat L_out = chol(XWX(idx_new,idx_new));
+    field<mat> out(2);
+    out(0) = L_out;
+    out(1) = conv_to<mat>::from(idx_new);
+    return out;
+  }
+  // find the rows that is needed to be added
+  uvec idx_add;
+  for (size_t i = 0; i < idx_new.n_elem; ++i) {
+    uvec temp = find(idx_old == idx_new[i]);
+    if (temp.is_empty()) {
+      idx_add.resize(idx_add.n_elem + 1);
+      idx_add(idx_add.n_elem - 1) = idx_new[i];
+    }
+  }
+  // if idx_add is empty - no adding rows, then return matrix
+  if (idx_add.is_empty()) {
+    field<mat> out(2);
+    out(0) = L; // upper triangle matrix
+    out(1) = conv_to<mat>::from(idx_old);
+    return out;
+  }
+  // update Cholesky decomposition
+  mat S12 = solve(trimatl(L.t()), XWX(idx_old, idx_add));
+  mat L_out(idx_new.n_elem, idx_new.n_elem, fill::zeros);
+  L_out.submat(span(0, L.n_rows - 1), span(0, L.n_cols - 1)) = L;
+  L_out.submat(span(0, L.n_rows - 1), span(L.n_cols, L_out.n_cols - 1)) = S12;
+  L_out.submat(span(L.n_rows, L_out.n_rows - 1), span(L.n_cols, L_out.n_cols - 1)) = chol(XWX(idx_add, idx_add) - S12.t() * S12);
   // find the output index for Cholesky decomposition
   uvec idx_out = idx_old;
   idx_out.resize(idx_new.n_elem);
@@ -407,6 +590,31 @@ field<mat> ElasticNetALO_CholUpdate(vec beta, double intercept,
   out(1) = L;
   out(2) = conv_to<mat>::from(idx);
   return out;
+}
+
+
+// [[Rcpp::export]]
+vec ElasticNetALO_CholUpdate_Weight(const vec &beta, const bool &intercept, 
+                                    const mat &X, const vec &y, const vec &weights,
+                                    const double &lambda, const double &alpha, 
+                                    const mat &L, const uvec &idx) {
+  // compute prediction
+  vec y_hat = X * beta;
+  // find active set
+  uvec A = find(beta != 0);
+  if(intercept) {
+    A.insert_rows(0, 0);
+    A = unique(A);
+  }
+  // compute diag_HW
+  vec diag_HW(X.n_rows, fill::zeros);
+  if(!A.is_empty()) {
+    mat AE = solve(trimatl(L.t()), X.cols(idx).t()); // |E| * N
+    diag_HW = sum(AE % AE, 0).t() % weights;
+  }
+  // compute the ALO prediction
+  vec y_alo = y_hat + diag_HW % (y_hat - y) / (1 - diag_HW);
+  return y_alo;
 }
 
 // [[Rcpp::export]]
